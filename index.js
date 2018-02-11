@@ -1,6 +1,7 @@
 var cloudantqs = require('cloudant-quickstart')
 var async = require('async')
 var EventEmitter = require('events');
+var url = require('url')
 
 // extend a URL by adding a database name
 // Handles present or absent trailing slash
@@ -17,7 +18,7 @@ var getStartInfo = function(sourceURL) {
   return cloudantqs(sourceURL).info();
 }
 
-// start replicating
+// start replicating by creating a _replicator document
 var startReplication = function(replicatorURL, docId, sourceURL, targetURL) {
   
   // mediator _replicator database
@@ -90,17 +91,25 @@ var monitorReplication = function(status, ee) {
 
 }
 
-var migrateDB = function(source, target, dbname, showProgressBar) {
+// migrate a single database from source ---> target
+var migrateDB = function(source, target, showProgressBar) {
 
   // we return an event emitter so we can give real-time updates
   var ee = new EventEmitter();
   var bar = null;
 
+  // extract dbname
+  var parsed = url.parse(source)
+
+  // turn source URL into '_replicator' database
+  var dbname = parsed.pathname.replace(/^\//, '')
+  parsed.pathname = parsed.path = '/_replicator'
+
   // status object
   var status = {
-    replicatorURL: extendURL(source, '_replicator'),
-    sourceURL: extendURL(source, dbname),
-    targetURL: extendURL(target, dbname),
+    replicatorURL: url.format(parsed),
+    sourceURL: source,
+    targetURL: target,
     dbname: dbname,
     docId: dbname + '_' + (new Date()).getTime(),
     status: 'new',
@@ -143,6 +152,7 @@ var migrateDB = function(source, target, dbname, showProgressBar) {
       ee.emit('error', msg)
     })
     
+    // receive status update events from the monitoring function
     ee.on('status', (s) => { 
       if (bar) {
         bar.update(s.percent, { status: s.status })
@@ -165,6 +175,7 @@ var migrateDB = function(source, target, dbname, showProgressBar) {
   });
 }
 
+// migrate a list of documents from source --> target
 var migrateList = function(source, target, showProgressBar, dbnames, concurrency) {
 
     // get database names
@@ -172,7 +183,9 @@ var migrateList = function(source, target, showProgressBar, dbnames, concurrency
 
       // async queue of migrations
       var q = async.queue((dbname, done) => {
-        migrateDB(source, target, dbname, showProgressBar).then((data) => {
+        var sourceURL = extendURL(source, dbname)
+        var targetURL = extendURL(target, dbname)
+        migrateDB(sourceURL, targetURL, showProgressBar).then((data) => {
           done(null, data)
         }).catch((e) => {
           done(e, null)
@@ -194,11 +207,12 @@ var migrateList = function(source, target, showProgressBar, dbnames, concurrency
     })
 }
 
+// migrate all documents
 var migrateAll = function(source, target, showProgressBar, concurrency) {
   // get db names and push to the queue
   var s = cloudantqs(source,'a')
   return s.dbs().then( (data) => {
-    return migrateList(source, target, showProgressBar, dbnames, concurrency)
+    return migrateList(source, target, showProgressBar, data, concurrency)
   })
 }
 
