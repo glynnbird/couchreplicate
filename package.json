@@ -7,8 +7,8 @@
     "couchreplicate": "bin/couchreplicate.js"
   },
   "scripts": {
-    "codestylefix": "standard --fix index.js lib/*.js",
-    "codestyle": "standard index.js lib/*.js",
+    "codestylefix": "standard --fix index.js bin/*.js",
+    "codestyle": "standard index.js bin/*.js",
     "test": "npm run codestyle && echo \"no tests yet\""
   },
   "repository": {

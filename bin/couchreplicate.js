@@ -4,17 +4,17 @@ var cam = require('../index.js')
 var url = require('url')
 
 var argv = require('yargs')
-  .option('source', { alias: 's',describe:'Cloudant source URL', demandOption: true })
-  .option('target', { alias: 't',describe:'Cloudant target URL', demandOption: true })
-  .option('concurrency', { alias: 'c',describe:'Number of replications to run at once', demandOption: false, default: 1})
-  .option('databases', { alias: 'd',describe:'Names of the database to replicate e.g. a,b,c', demandOption: false, default: ''})
-  .option('all', { alias: 'a',describe:'Replicate all databases', demandOption: false, default: false})
-  .option('quiet', { alias: 'q',describe:'Supress progress bars', demandOption: false, default: false})
+  .option('source', { alias: 's', describe: 'Cloudant source URL', demandOption: true })
+  .option('target', { alias: 't', describe: 'Cloudant target URL', demandOption: true })
+  .option('concurrency', { alias: 'c', describe: 'Number of replications to run at once', demandOption: false, default: 1 })
+  .option('databases', { alias: 'd', describe: 'Names of the database to replicate e.g. a,b,c', demandOption: false, default: '' })
+  .option('all', { alias: 'a', describe: 'Replicate all databases', demandOption: false, default: false })
+  .option('quiet', { alias: 'q', describe: 'Supress progress bars', demandOption: false, default: false })
   .help('help')
   .argv
 
-sourceParsed = url.parse(argv.source)
-targetParsed = url.parse(argv.target)
+var sourceParsed = url.parse(argv.source)
+var targetParsed = url.parse(argv.target)
 
 // check source URL
 if (!sourceParsed.protocol || !sourceParsed.hostname) {
