@@ -98,7 +98,7 @@ multiple replications:
   })
 ```
 
-or an entire cluster:
+or replicate an entire cluster:
 
 ```js
   const srcURL = "http://u:p@localhost:5984"
@@ -107,8 +107,7 @@ or an entire cluster:
   const databases = ['animals', 'minerals', 'vegetables']
   const concurrency = 3
   
-  cam.migrateAll(srcURL, targetURL, showProgressBar, concurrency).then(() =>
-=> {
+  cam.migrateAll(srcURL, targetURL, showProgressBar, concurrency).then(() => {
     console.log('done')
   })
 ```
