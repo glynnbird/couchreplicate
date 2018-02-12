@@ -51,6 +51,9 @@ var fetchReplicationStatusDocs = function (status) {
   ]).then((data) => {
     status.status = data[0]._replication_state || 'new'
     status.targetDocCount = data[1].doc_count + data[1].doc_del_count
+    if (typeof data[0]._replication_stats === 'object') {
+      status.docFail = data[0]._replication_stats.doc_write_failures
+    }
     return status
   }).catch((e) => { return status })
 }
@@ -149,6 +152,7 @@ var migrateDB = function (source, target, showProgressBar, auth) {
     status: 'new',
     sourceDocCount: 0,
     targetDocCount: 0,
+    docFail: 0,
     percent: 0,
     error: false
   }
@@ -200,6 +204,9 @@ var migrateDB = function (source, target, showProgressBar, auth) {
       reject(e)
     })
     .on('completed', (s) => {
+      if (status.docFail > 0) {
+        console.error('ERROR: ' + status.dbname + ' failed to copy ' + status.docFail + ' documents. This may be because the documents exceed the target\'s 1MB max size limit.')
+      }
       if (bar) {
         bar.update(s.percent, { status: s.status })
       }
