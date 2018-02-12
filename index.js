@@ -3,8 +3,8 @@ var async = require('async')
 var EventEmitter = require('events')
 var url = require('url')
 
-var isEmptyObject = function(obj) {
-  return typeof obj === 'Object' && Object.keys(obj).length === 0
+var isEmptyObject = function (obj) {
+  return typeof obj === 'object' && Object.keys(obj).length === 0
 }
 
 // extend a URL by adding a database name
@@ -93,9 +93,8 @@ var monitorReplication = function (status, ee) {
 }
 
 // migrate the _security document from the source to the target
-var migrateAuth = function(sourceURL, targetURL) {
-  return new Promise( (resolve, reject) => {
-    
+var migrateAuth = function (sourceURL, targetURL) {
+  return new Promise((resolve, reject) => {
     var s = cloudantqs(sourceURL)
     var t = cloudantqs(targetURL)
     var securityDoc = '_security'
@@ -111,14 +110,14 @@ var migrateAuth = function(sourceURL, targetURL) {
     s.get(securityDoc).then((data) => {
       // if it's empty, do nothing
       if (isEmptyObject(data)) {
-        return resolve();
+        return resolve()
       }
 
       // remove any reference to the source database's username
       if (username && typeof data.cloudant === 'object') {
-        delete data.cloudant[username];
+        delete data.cloudant[username]
       }
-      
+
       // write the source's _security document to the target
       return t.update(securityDoc, data)
     }).then((data) => {
