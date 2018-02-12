@@ -9,6 +9,7 @@ var argv = require('yargs')
   .option('concurrency', { alias: 'c', describe: 'Number of replications to run at once', demandOption: false, default: 1 })
   .option('databases', { alias: 'd', describe: 'Names of the database to replicate e.g. a,b,c', demandOption: false, default: '' })
   .option('all', { alias: 'a', describe: 'Replicate all databases', demandOption: false, default: false })
+  .option('auth', { alias: 'x', describe: 'Also copy _security document', demandOption: false, default: false })
   .option('quiet', { alias: 'q', describe: 'Supress progress bars', demandOption: false, default: false })
   .help('help')
   .argv
@@ -55,12 +56,12 @@ var progressBar = !argv.quiet
 // if URLS contain database names
 if (sourceDbname && targetDbname) {
   // migrate single database
-  cam.migrateDB(argv.source, argv.target, progressBar).then(() => {})
+  cam.migrateDB(argv.source, argv.target, progressBar, argv.auth).then(() => {})
 } else if (argv.databases) {
   // or if a named database or list is supplied
   var databases = argv.databases.split(',')
-  cam.migrateList(argv.source, argv.target, progressBar, databases, argv.concurrency).then(() => {})
+  cam.migrateList(argv.source, argv.target, progressBar, databases, argv.concurrency, argv.auth).then(() => {})
 } else if (argv.all) {
   // or if all databases are required
-  cam.migrateAll(argv.source, argv.target, progressBar, argv.concurrency).then(() => {})
+  cam.migrateAll(argv.source, argv.target, progressBar, argv.concurrency, argv.auth).then(() => {})
 }
