@@ -1,5 +1,7 @@
 # couchreplicate
 
+[![Build Status](https://travis-ci.org/ibm-watson-data-lab/couchreplicate.svg?branch=master)](https://travis-ci.org/ibm-watson-data-lab/couchreplicate) [![npm version](https://badge.fury.io/js/couchreplicate.svg)](https://badge.fury.io/js/couchreplicate)
+
 This is a command-line tool and library that helps coordinate [Apache CouchDB](http://couchdb.apache.org/)™ or [IBM Cloudant](https://www.ibm.com/cloud/cloudant) replications. It can be used to replicate a single database, multiple databases or an entire cluster from a source instance to a target instance.
 
 It is written in Node.js and can be installed from `npm` or used programmatically in your own Node.js projects.
