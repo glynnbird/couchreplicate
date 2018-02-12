@@ -88,8 +88,9 @@ Set off a single replication:
   const srcURL = "http://u:p@localhost:5984/sourcedb"
   const targetURL = "https://U:P@HOST.cloudant.com/targetdb"
   const showProgressBar = false
+  const copyAuth = false
   
-  cm.migrateDB(srcURL, targetURL, showProgressBar).then(() => {
+  cm.migrateDB(srcURL, targetURL, showProgressBar, copyAuth).then(() => {
     console.log('done')
   })
 ```
@@ -102,8 +103,9 @@ multiple replications:
   const showProgressBar = false
   const databases = ['animals', 'minerals', 'vegetables']
   const concurrency = 3
+  const copyAuth = false
   
-  cm.migrateList(srcURL, targetURL, showProgressBar, databases, concurrency).then(() => {
+  cm.migrateList(srcURL, targetURL, showProgressBar, databases, concurrency, copyAuth).then(() => {
     console.log('done')
   })
 ```
@@ -116,8 +118,9 @@ or replicate an entire cluster:
   const showProgressBar = false
   const databases = ['animals', 'minerals', 'vegetables']
   const concurrency = 3
+  const copyAuth = false
   
-  cam.migrateAll(srcURL, targetURL, showProgressBar, concurrency).then(() => {
+  cam.migrateAll(srcURL, targetURL, showProgressBar, concurrency, copyAuth).then(() => {
     console.log('done')
   })
 ```
