@@ -50,6 +50,14 @@ or
 
 where `mydb` is the name of the database. When supplying the source and target database names in the URL, the database names need not match.
 
+### Additionally replicating the _security document
+
+Normal CouchDB replication leaves the `_security` document behind. The `_security` document is used to determine which users have which levels of access to the database. Without a `_security` document specified, only an `_admin` user can read/write/update/delete documents.
+
+If you pass the `--auth` or `-x` command-line parameter, then *couchreplicate* will copy the `_security` document from the source to the target database at the end of the replication process e.g:
+
+    couchreplicate -s http://u:p@localhost:5984/mydb -t https://U:P@HOST.cloudant.com/mydb --auth
+
 ## Command-line parameters
 
 - `--source` / `-s` - source URL (required)
@@ -57,6 +65,7 @@ where `mydb` is the name of the database. When supplying the source and target d
 - `--databases` / `-d` - comma-separated list of database names
 - `--all` / `-a` - replicate all databases
 - `--concurrency` / `-c` - the number of replications to run at once (default = 1)
+- `--auth` / `-x` - also copy the `_security` document during replication
 - `--quiet` / `-q` - suppress progress bars
 - `--help` / `-h` - show help message
 - `--version` / `-v` - show version number
@@ -79,8 +88,9 @@ Set off a single replication:
   const srcURL = "http://u:p@localhost:5984/sourcedb"
   const targetURL = "https://U:P@HOST.cloudant.com/targetdb"
   const showProgressBar = false
+  const copyAuth = false
   
-  cm.migrateDB(srcURL, targetURL, showProgressBar).then(() => {
+  cm.migrateDB(srcURL, targetURL, showProgressBar, copyAuth).then(() => {
     console.log('done')
   })
 ```
@@ -93,8 +103,9 @@ multiple replications:
   const showProgressBar = false
   const databases = ['animals', 'minerals', 'vegetables']
   const concurrency = 3
+  const copyAuth = false
   
-  cm.migrateList(srcURL, targetURL, showProgressBar, databases, concurrency).then(() => {
+  cm.migrateList(srcURL, targetURL, showProgressBar, databases, concurrency, copyAuth).then(() => {
     console.log('done')
   })
 ```
@@ -107,8 +118,9 @@ or replicate an entire cluster:
   const showProgressBar = false
   const databases = ['animals', 'minerals', 'vegetables']
   const concurrency = 3
+  const copyAuth = false
   
-  cam.migrateAll(srcURL, targetURL, showProgressBar, concurrency).then(() => {
+  cam.migrateAll(srcURL, targetURL, showProgressBar, concurrency, copyAuth).then(() => {
     console.log('done')
   })
 ```

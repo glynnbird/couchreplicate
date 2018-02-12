@@ -3,6 +3,10 @@ var async = require('async')
 var EventEmitter = require('events')
 var url = require('url')
 
+var isEmptyObject = function (obj) {
+  return typeof obj === 'object' && Object.keys(obj).length === 0
+}
+
 // extend a URL by adding a database name
 // Handles present or absent trailing slash
 var extendURL = function (url, dbname) {
@@ -88,8 +92,42 @@ var monitorReplication = function (status, ee) {
   )
 }
 
+// migrate the _security document from the source to the target
+var migrateAuth = function (sourceURL, targetURL) {
+  return new Promise((resolve, reject) => {
+    var s = cloudantqs(sourceURL)
+    var t = cloudantqs(targetURL)
+    var securityDoc = '_security'
+
+    // establish the source account's username
+    var parsed = url.parse(sourceURL)
+    var username = null
+    if (parsed.auth) {
+      username = parsed.auth.split(':')[0]
+    }
+
+    // fetch the source database's _security document
+    s.get(securityDoc).then((data) => {
+      // if it's empty, do nothing
+      if (isEmptyObject(data)) {
+        return resolve()
+      }
+
+      // remove any reference to the source database's username
+      if (username && typeof data.cloudant === 'object') {
+        delete data.cloudant[username]
+      }
+
+      // write the source's _security document to the target
+      return t.update(securityDoc, data)
+    }).then((data) => {
+      resolve()
+    }).catch(reject)
+  })
+}
+
 // migrate a single database from source ---> target
-var migrateDB = function (source, target, showProgressBar) {
+var migrateDB = function (source, target, showProgressBar, auth) {
   // we return an event emitter so we can give real-time updates
   var ee = new EventEmitter()
   var bar = null
@@ -165,20 +203,24 @@ var migrateDB = function (source, target, showProgressBar) {
       if (bar) {
         bar.update(s.percent, { status: s.status })
       }
-      resolve(s)
+      if (auth) {
+        migrateAuth(status.sourceURL, status.targetURL).then(() => { resolve(s) })
+      } else {
+        resolve(s)
+      }
     })
   })
 }
 
 // migrate a list of documents from source --> target
-var migrateList = function (source, target, showProgressBar, dbnames, concurrency) {
+var migrateList = function (source, target, showProgressBar, dbnames, concurrency, auth) {
     // get database names
   return new Promise((resolve, reject) => {
       // async queue of migrations
     var q = async.queue((dbname, done) => {
       var sourceURL = extendURL(source, dbname)
       var targetURL = extendURL(target, dbname)
-      migrateDB(sourceURL, targetURL, showProgressBar).then((data) => {
+      migrateDB(sourceURL, targetURL, showProgressBar, auth).then((data) => {
         done(null, data)
       }).catch((e) => {
         done(e, null)
@@ -201,11 +243,11 @@ var migrateList = function (source, target, showProgressBar, dbnames, concurrenc
 }
 
 // migrate all documents
-var migrateAll = function (source, target, showProgressBar, concurrency) {
+var migrateAll = function (source, target, showProgressBar, concurrency, auth) {
   // get db names and push to the queue
   var s = cloudantqs(source, 'a')
   return s.dbs().then((data) => {
-    return migrateList(source, target, showProgressBar, data, concurrency)
+    return migrateList(source, target, showProgressBar, data, concurrency, auth)
   })
 }
 
