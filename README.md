@@ -6,8 +6,7 @@ This is a command-line tool and library that helps coordinate [Apache CouchDB](h
 
 It is written in Node.js and can be installed from `npm` or used programmatically in your own Node.js projects.
 
-
-
+![screenshot](img/couchreplicate.gif)
 
 ## Pre-requisites
 
@@ -20,6 +19,8 @@ It is written in Node.js and can be installed from `npm` or used programmaticall
 Install with npm
 
     npm install -g couchreplicate
+
+Supplying `-g` instructs npm to install the library globally. You can find out where global npm modules are installed by running `npm config list`. You can find out which user is used to install global modules by running `npm -g config get user`. I had to repair the permissions of pre-existing libraries by running `chown -R nobody /usr/local/lib/node_modules/*`. 
 
 ## Usage
 
