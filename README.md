@@ -86,7 +86,7 @@ Replication errors can occur and have a multitude of causes. If a replication do
 
  - incorrect authentication credentials at the source or target side
  - insufficient privileges - make sure you have "admin" credentials for the source and target clusters
- - the target service may have a size restriction on documents. The Cloudant "Lite" plan has a limit of 1MB per API request, so very large JSON documents would not make it
+ - the target service may have a size restriction on documents. Cloudant instances on the IBM Cloud have a limit of 1MB per API request, so very large JSON documents would not make it
  - the target service may have a API rate limit in place. If the target is very busy, then there may be insufficient capacity left over to service the replication process
 
  ## Debugging
