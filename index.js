@@ -135,7 +135,13 @@ var migrateAuth = function (sourceURL, targetURL) {
 }
 
 // migrate a single database from source ---> target
-var migrateDB = function (source, target, showProgressBar, auth) {
+var migrateDB = function (opts) {
+  // extract options
+  var source = opts.source
+  var target = opts.target
+  var showProgressBar = !opts.quiet
+  var auth = opts.auth
+
   // we return an event emitter so we can give real-time updates
   var ee = new EventEmitter()
   var bar = null
@@ -222,23 +228,24 @@ var migrateDB = function (source, target, showProgressBar, auth) {
 }
 
 // migrate a list of documents from source --> target
-var migrateList = function (source, target, showProgressBar, dbnames, concurrency, auth) {
+var migrateList = function (opts) {
     // get database names
   return new Promise((resolve, reject) => {
       // async queue of migrations
     var q = async.queue((dbname, done) => {
-      var sourceURL = extendURL(source, dbname)
-      var targetURL = extendURL(target, dbname)
-      migrateDB(sourceURL, targetURL, showProgressBar, auth).then((data) => {
+      var newopts = JSON.parse(JSON.stringify(opts))
+      newopts.source = extendURL(newopts.source, dbname)
+      newopts.target = extendURL(newopts.target, dbname)
+      migrateDB(newopts).then((data) => {
         done(null, data)
       }).catch((e) => {
         done(e, null)
       })
-    }, concurrency)
+    }, opts.concurrency)
 
       // push to the queue
-    for (var i in dbnames) {
-      var dbname = dbnames[i]
+    for (var i in opts.databases) {
+      var dbname = opts.databases[i]
       if (!dbname.match(/^_/)) {
         q.push(dbname)
       }
@@ -252,11 +259,12 @@ var migrateList = function (source, target, showProgressBar, dbnames, concurrenc
 }
 
 // migrate all documents
-var migrateAll = function (source, target, showProgressBar, concurrency, auth) {
+var migrateAll = function (opts) {
   // get db names and push to the queue
-  var s = cloudantqs(source, 'a')
+  var s = cloudantqs(opts.source, 'a')
   return s.dbs().then((data) => {
-    return migrateList(source, target, showProgressBar, data, concurrency, auth)
+    opts.databases = data
+    return migrateList(opts)
   })
 }
 

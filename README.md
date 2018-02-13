@@ -103,12 +103,13 @@ Load the module into your code
 Set off a single replication:
 
 ```js
-  const srcURL = "http://u:p@localhost:5984/sourcedb"
-  const targetURL = "https://U:P@HOST.cloudant.com/targetdb"
-  const showProgressBar = false
-  const copyAuth = false
-  
-  cm.migrateDB(srcURL, targetURL, showProgressBar, copyAuth).then(() => {
+  var opts = {
+    source: 'http://u:p@localhost:5984/sourcedb',
+    target: 'https://U:P@HOST.cloudant.com/targetdb',
+    quiet: true,
+    auth: true 
+  }
+  cm.migrateDB(opts).then(() => {
     console.log('done')
   })
 ```
@@ -116,14 +117,16 @@ Set off a single replication:
 multiple replications:
 
 ```js
-  const srcURL = "http://u:p@localhost:5984"
-  const targetURL = "https://U:P@HOST.cloudant.com"
-  const showProgressBar = false
-  const databases = ['animals', 'minerals', 'vegetables']
-  const concurrency = 3
-  const copyAuth = false
+  var opts = {
+    source: 'http://u:p@localhost:5984',
+    target: 'https://U:P@HOST.cloudant.com',
+    databases: ['animals', 'minerals', 'vegetables'],
+    quiet: false,
+    concurrency: 3
+    auth: true 
+  }
   
-  cm.migrateList(srcURL, targetURL, showProgressBar, databases, concurrency, copyAuth).then(() => {
+  cm.migrateList(opts).then(() => {
     console.log('done')
   })
 ```
@@ -131,14 +134,15 @@ multiple replications:
 or replicate an entire cluster:
 
 ```js
-  const srcURL = "http://u:p@localhost:5984"
-  const targetURL = "https://U:P@HOST.cloudant.com"
-  const showProgressBar = false
-  const databases = ['animals', 'minerals', 'vegetables']
-  const concurrency = 3
-  const copyAuth = false
+  var opts = {
+    source: 'http://u:p@localhost:5984',
+    target: 'https://U:P@HOST.cloudant.com',
+    quiet: false,
+    concurrency: 3
+    auth: true 
+  }
   
-  cam.migrateAll(srcURL, targetURL, showProgressBar, concurrency, copyAuth).then(() => {
+  cam.migrateAll(opts).then(() => {
     console.log('done')
   })
 ```
