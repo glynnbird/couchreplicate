@@ -58,6 +58,19 @@ If you pass the `--auth` or `-x` command-line parameter, then *couchreplicate* w
 
     couchreplicate -s http://u:p@localhost:5984/mydb -t https://U:P@HOST.cloudant.com/mydb --auth
 
+### Generating continuous replications
+
+The default action is to create one-shot replications that copy data from the source to the target and then finish. If you would like live, continuous replications instead, then add the `--live` or `-l` option to your command-line invocation.
+
+e.g. 
+
+    couchreplicate -l -a -s http://u:p@localhost:5984 -t https://U:P@HOST.cloudant.com
+
+Some things to note:
+
+- this tool will only permit you to create fifty live replications
+- as the replications are continuous, they will never reach a "completed" state so the tool will remain active forever, or until you kill the process (with Ctrl-C). After killing the process, any running replications will continue to run. See the source cluster's "replication" tab in the dashboard.
+
 ### Errors during replication
 
 Replication errors can occur and have a multitude of causes. If a replication does not complete successfully, you may see a status like this:
@@ -76,7 +89,15 @@ Replication errors can occur and have a multitude of causes. If a replication do
  - the target service may have a size restriction on documents. The Cloudant "Lite" plan has a limit of 1MB per API request, so very large JSON documents would not make it
  - the target service may have a API rate limit in place. If the target is very busy, then there may be insufficient capacity left over to service the replication process
 
-## Command-line parameters
+ ## Debugging
+
+ If you need to monitor replications more closely than watching the progress bars, then setting the `DEBUG` environment variable to `couchreplicate` before running the tool will send more status information to the console.
+
+ e.g.
+
+     DEBUG=couchreplicate couchreplicate -d mydb -s http://u:p@localhost:5984 -t https://U:P@HOST.cloudant.com
+
+## Command-line reference
 
 - `--source` / `-s` - source URL (required)
 - `--target` / `-t` - target URL (required)
@@ -84,6 +105,7 @@ Replication errors can occur and have a multitude of causes. If a replication do
 - `--all` / `-a` - replicate all databases
 - `--concurrency` / `-c` - the number of replications to run at once (default = 1)
 - `--auth` / `-x` - also copy the `_security` document during replication
+- `--live` / `-l` - set up continuous replications instead of the default "one-shot" replication
 - `--quiet` / `-q` - suppress progress bars
 - `--help` / `-h` - show help message
 - `--version` / `-v` - show version number

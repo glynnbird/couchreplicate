@@ -23,7 +23,7 @@ var getStartInfo = function (sourceURL) {
 }
 
 // start replicating by creating a _replicator document
-var startReplication = function (replicatorURL, docId, sourceURL, targetURL) {
+var startReplication = function (replicatorURL, docId, sourceURL, targetURL, live) {
   // mediator _replicator database
   var r = cloudantqs(replicatorURL)
 
@@ -32,7 +32,8 @@ var startReplication = function (replicatorURL, docId, sourceURL, targetURL) {
     _id: docId,
     source: sourceURL,
     target: targetURL,
-    create_target: true
+    create_target: true,
+    continuous: live
   }
   return r.insert(obj)
 }
@@ -136,18 +137,27 @@ var migrateAuth = function (sourceURL, targetURL) {
 
 // migrate a single database from source ---> target
 var migrateDB = function (opts) {
-  // extract options
-  var source = opts.source
-  var target = opts.target
-  var showProgressBar = !opts.quiet
-  var auth = opts.auth
+
+  // sanity check URLs
+  var sourceParsed = url.parse(opts.source)
+  var targetParsed = url.parse(opts.target)
+  
+  // check source URL
+  if (!sourceParsed.protocol || !sourceParsed.hostname) {
+    throw new Error('invalid source URL')
+  }
+  
+  // check target URL
+  if (!targetParsed.protocol || !targetParsed.hostname) {
+    throw new Error('invalid target URL')
+  }
 
   // we return an event emitter so we can give real-time updates
   var ee = new EventEmitter()
   var bar = null
 
   // extract dbname
-  var parsed = url.parse(source)
+  var parsed = url.parse(opts.source)
 
   // turn source URL into '_replicator' database
   var dbname = parsed.pathname.replace(/^\//, '')
@@ -156,8 +166,8 @@ var migrateDB = function (opts) {
   // status object
   var status = {
     replicatorURL: url.format(parsed),
-    sourceURL: source,
-    targetURL: target,
+    sourceURL: opts.source,
+    targetURL: opts.target,
     dbname: dbname,
     docId: dbname + '_' + (new Date()).getTime(),
     status: 'new',
@@ -165,11 +175,12 @@ var migrateDB = function (opts) {
     targetDocCount: 0,
     docFail: 0,
     percent: 0,
-    error: false
+    error: false,
+    live: opts.live
   }
 
   // initialise progress bar
-  if (typeof showProgressBar === 'undefined' || showProgressBar) {
+  if (!opts.quiet) {
     var ProgressBar = require('ascii-progress')
     bar = new ProgressBar({
       schema: ' ' + dbname.padEnd(20) + ' [:bar.green] :percent.green :elapseds.cyan :status.blue',
@@ -184,7 +195,7 @@ var migrateDB = function (opts) {
       status.sourceDocCount = info.doc_count + info.doc_del_count
 
       // start the replication
-      return startReplication(status.replicatorURL, status.docId, status.sourceURL, status.targetURL)
+      return startReplication(status.replicatorURL, status.docId, status.sourceURL, status.targetURL, status.live)
     }).then((data) => {
       ee.emit('status', status)
 
@@ -218,7 +229,7 @@ var migrateDB = function (opts) {
       if (bar) {
         bar.update(s.percent, { status: s.status })
       }
-      if (auth) {
+      if (opts.auth) {
         migrateAuth(status.sourceURL, status.targetURL).then(() => { resolve(s) })
       } else {
         resolve(s)
@@ -229,9 +240,20 @@ var migrateDB = function (opts) {
 
 // migrate a list of documents from source --> target
 var migrateList = function (opts) {
-    // get database names
+
+  // enforce maximum number of continuous replications
+  if (opts.live && opts.databases.length > 50)  {
+    throw new Error('Maximum number of continuous replications is fifty')
+  }
+
+  // ignore concurrency in live mode
+  if (opts.live) {
+    opts.concurrency = 50
+  }
+
+  // get database names
   return new Promise((resolve, reject) => {
-      // async queue of migrations
+    // async queue of migrations
     var q = async.queue((dbname, done) => {
       var newopts = JSON.parse(JSON.stringify(opts))
       newopts.source = extendURL(newopts.source, dbname)
@@ -243,7 +265,7 @@ var migrateList = function (opts) {
       })
     }, opts.concurrency)
 
-      // push to the queue
+    // push to the queue
     for (var i in opts.databases) {
       var dbname = opts.databases[i]
       if (!dbname.match(/^_/)) {
@@ -251,7 +273,7 @@ var migrateList = function (opts) {
       }
     }
 
-      // when the queue is drained, we're done
+    // when the queue is drained, we're done
     q.drain = () => {
       resolve()
     }

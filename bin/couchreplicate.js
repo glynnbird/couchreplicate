@@ -11,6 +11,7 @@ var argv = require('yargs')
   .option('all', { alias: 'a', describe: 'Replicate all databases', demandOption: false, default: false })
   .option('auth', { alias: 'x', describe: 'Also copy _security document', demandOption: false, default: false })
   .option('quiet', { alias: 'q', describe: 'Supress progress bars', demandOption: false, default: false })
+  .option('live', { alias: 'l', describe: 'Setup live (continuous) replications instead', demandOption: false, default: false })
   .help('help')
   .argv
 
@@ -53,12 +54,12 @@ if ((sourceDbname || targetDbname) && (argv.databases || argv.all)) {
 // if URLS contain database names
 if (sourceDbname && targetDbname) {
   // migrate single database
-  cam.migrateDB(argv).then(() => {})
+  cam.migrateDB(argv).then(() => {}).catch(console.error)
 } else if (argv.databases) {
   // or if a named database or list is supplied
   argv.databases = argv.databases.split(',')
-  cam.migrateList(argv).then(() => {})
+  cam.migrateList(argv).then(() => {}).catch(console.error)
 } else if (argv.all) {
   // or if all databases are required
-  cam.migrateAll(argv).then(() => {})
+  cam.migrateAll(argv).then(() => {}).catch(console.error)
 }
