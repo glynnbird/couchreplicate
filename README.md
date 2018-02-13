@@ -58,6 +58,24 @@ If you pass the `--auth` or `-x` command-line parameter, then *couchreplicate* w
 
     couchreplicate -s http://u:p@localhost:5984/mydb -t https://U:P@HOST.cloudant.com/mydb --auth
 
+### Errors during replication
+
+Replication errors can occur and have a multitude of causes. If a replication does not complete successfully, you may see a status like this:
+
+```sh
+ cities [▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇——] 97% 21.1s error
+ ```
+
+ - the document count may not reach 100%
+ - the status string at right-hand side will read 'error'
+
+ It may be caused by:
+
+ - incorrect authentication credentials at the source or target side
+ - insufficient privileges - make sure you have "admin" credentials for the source and target clusters
+ - the target service may have a size restriction on documents. The Cloudant "Lite" plan has a limit of 1MB per API request, so very large JSON documents would not make it
+ - the target service may have a API rate limit in place. If the target is very busy, then there may be insufficient capacity left over to service the replication process
+
 ## Command-line parameters
 
 - `--source` / `-s` - source URL (required)
