@@ -137,16 +137,15 @@ var migrateAuth = function (sourceURL, targetURL) {
 
 // migrate a single database from source ---> target
 var migrateDB = function (opts) {
-
   // sanity check URLs
   var sourceParsed = url.parse(opts.source)
   var targetParsed = url.parse(opts.target)
-  
+
   // check source URL
   if (!sourceParsed.protocol || !sourceParsed.hostname) {
     throw new Error('invalid source URL')
   }
-  
+
   // check target URL
   if (!targetParsed.protocol || !targetParsed.hostname) {
     throw new Error('invalid target URL')
@@ -240,9 +239,8 @@ var migrateDB = function (opts) {
 
 // migrate a list of documents from source --> target
 var migrateList = function (opts) {
-
   // enforce maximum number of continuous replications
-  if (opts.live && opts.databases.length > 50)  {
+  if (opts.live && opts.databases.length > 50) {
     throw new Error('Maximum number of continuous replications is fifty')
   }
 
