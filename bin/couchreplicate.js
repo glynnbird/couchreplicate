@@ -50,18 +50,15 @@ if ((sourceDbname || targetDbname) && (argv.databases || argv.all)) {
   process.exit(3)
 }
 
-// do we want progress bars?
-var progressBar = !argv.quiet
-
 // if URLS contain database names
 if (sourceDbname && targetDbname) {
   // migrate single database
-  cam.migrateDB(argv.source, argv.target, progressBar, argv.auth).then(() => {})
+  cam.migrateDB(argv).then(() => {})
 } else if (argv.databases) {
   // or if a named database or list is supplied
-  var databases = argv.databases.split(',')
-  cam.migrateList(argv.source, argv.target, progressBar, databases, argv.concurrency, argv.auth).then(() => {})
+  argv.databases = argv.databases.split(',')
+  cam.migrateList(argv).then(() => {})
 } else if (argv.all) {
   // or if all databases are required
-  cam.migrateAll(argv.source, argv.target, progressBar, argv.concurrency, argv.auth).then(() => {})
+  cam.migrateAll(argv).then(() => {})
 }
