@@ -51,6 +51,12 @@ var fetchReplicationStatusDocs = function (status) {
   ]).then((data) => {
     status.status = data[0]._replication_state || 'new'
     status.targetDocCount = data[1].doc_count + data[1].doc_del_count
+    if (typeof data[0]._replication_stats === 'object') {
+      status.docFail = data[0]._replication_stats.doc_write_failures
+    }
+    if (process.env.DEBUG === 'couchreplicate') {
+      console.error(JSON.stringify(data))
+    }
     return status
   }).catch((e) => { return status })
 }
@@ -65,7 +71,11 @@ var monitorReplication = function (status, ee) {
       setTimeout(() => {
          // get the replication status
         fetchReplicationStatusDocs(status).then(() => {
-          if (status.status === 'error' || status.status === 'completed') {
+          if (status.status === 'error' || status.status === 'failed') {
+            status.error = true
+            finished = true
+          }
+          if (status.status === 'completed') {
             finished = true
           }
           if (status.sourceDocCount > 0) {
@@ -79,13 +89,11 @@ var monitorReplication = function (status, ee) {
     // return when finished
     () => { return finished },
     (err, results) => {
-      if (err) {
+      if (err || status.error) {
         status.status = 'error'
-        status.error = true
-        ee.emit('error', err)
-      } else {
-        status.status = 'completed'
         ee.emit('status', status)
+        ee.emit('error', status)
+      } else {
         ee.emit('completed', status)
       }
     }
@@ -149,6 +157,7 @@ var migrateDB = function (source, target, showProgressBar, auth) {
     status: 'new',
     sourceDocCount: 0,
     targetDocCount: 0,
+    docFail: 0,
     percent: 0,
     error: false
   }
@@ -193,13 +202,13 @@ var migrateDB = function (source, target, showProgressBar, auth) {
       }
     })
     .on('error', (e) => {
-      console.error(e)
-      if (bar) {
-        bar.clear()
-      }
       reject(e)
     })
     .on('completed', (s) => {
+      if (status.docFail > 0) {
+        status.status = 'error: ' + status.docFail + ' docs failed'
+        status.error = true
+      }
       if (bar) {
         bar.update(s.percent, { status: s.status })
       }
