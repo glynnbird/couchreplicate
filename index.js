@@ -23,7 +23,7 @@ var getStartInfo = function (sourceURL) {
 }
 
 // create the _replicator database
-var createReplicator = function(replicatorURL) {
+var createReplicator = function (replicatorURL) {
   var r = cloudantqs(replicatorURL)
   return r.create({indexAll: false})
 }
