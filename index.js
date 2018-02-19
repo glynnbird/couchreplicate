@@ -3,6 +3,16 @@ var async = require('async')
 var EventEmitter = require('events')
 var url = require('url')
 
+// pad string
+var padEnd = function (str, targetLength, padString) {
+  if (str.length < targetLength) {
+    do {
+      str += padString
+    } while (str.length < targetLength)
+  }
+  return str
+}
+
 var isEmptyObject = function (obj) {
   return typeof obj === 'object' && Object.keys(obj).length === 0
 }
@@ -188,7 +198,7 @@ var migrateDB = function (opts) {
   if (!opts.quiet) {
     var ProgressBar = require('ascii-progress')
     bar = new ProgressBar({
-      schema: ' ' + dbname.padEnd(20) + ' [:bar.green] :percent.green :elapseds.cyan :status.blue',
+      schema: ' ' + padEnd(dbname, 20, ' ') + ' [:bar.green] :percent.green :elapseds.cyan :status.blue',
       total: 100,
       status: ''
     })
