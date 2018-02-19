@@ -3,23 +3,14 @@ var async = require('async')
 var EventEmitter = require('events')
 var url = require('url')
 
-// https://github.com/uxitten/polyfill/blob/master/string.polyfill.js
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padEnd
-if (!String.prototype.padEnd) {
-  String.prototype.padEnd = function padEnd(targetLength,padString) {
-      targetLength = targetLength>>0; //floor if number or convert non-number to 0;
-      padString = String((typeof padString !== 'undefined' ? padString : ' '));
-      if (this.length > targetLength) {
-          return String(this);
-      }
-      else {
-          targetLength = targetLength-this.length;
-          if (targetLength > padString.length) {
-              padString += padString.repeat(targetLength/padString.length); //append to original to ensure we are longer than needed
-          }
-          return String(this) + padString.slice(0,targetLength);
-      }
-  };
+// pad string
+var padEnd = function (str, targetLength, padString) {
+  if (str.length < targetLength) {
+    do {
+      str += padString
+    } while (str.length < targetLength)
+  }
+  return str
 }
 
 var isEmptyObject = function (obj) {
@@ -207,7 +198,7 @@ var migrateDB = function (opts) {
   if (!opts.quiet) {
     var ProgressBar = require('ascii-progress')
     bar = new ProgressBar({
-      schema: ' ' + dbname.padEnd(20) + ' [:bar.green] :percent.green :elapseds.cyan :status.blue',
+      schema: ' ' + padEnd(dbname, 20, ' ') + ' [:bar.green] :percent.green :elapseds.cyan :status.blue',
       total: 100,
       status: ''
     })
