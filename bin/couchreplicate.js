@@ -51,15 +51,25 @@ if ((sourceDbname || targetDbname) && (argv.databases || argv.all)) {
   process.exit(3)
 }
 
+// calculate the replicatorURL
+sourceParsed.pathname = sourceParsed.path = '/_replicator'
+var replicatorURL = url.format(sourceParsed)
+
 // if URLS contain database names
 if (sourceDbname && targetDbname) {
   // migrate single database
-  cam.migrateDB(argv).then(() => {}).catch(console.error)
+  cam.createReplicator(replicatorURL).then(() => {
+    return cam.migrateDB(argv)
+  }).then(() => {}).catch(console.error)
 } else if (argv.databases) {
   // or if a named database or list is supplied
   argv.databases = argv.databases.split(',')
-  cam.migrateList(argv).then(() => {}).catch(console.error)
+  cam.createReplicator(replicatorURL).then(() => {
+    return cam.migrateList(argv)
+  }).then(() => {}).catch(console.error)
 } else if (argv.all) {
   // or if all databases are required
-  cam.migrateAll(argv).then(() => {}).catch(console.error)
+  cam.createReplicator(replicatorURL).then(() => {
+    return cam.migrateAll(argv)
+  }).then(() => {}).catch(console.error)
 }

@@ -22,6 +22,12 @@ var getStartInfo = function (sourceURL) {
   return cloudantqs(sourceURL).info()
 }
 
+// create the _replicator database
+var createReplicator = function (replicatorURL) {
+  var r = cloudantqs(replicatorURL)
+  return r.create({indexAll: false})
+}
+
 // start replicating by creating a _replicator document
 var startReplication = function (replicatorURL, docId, sourceURL, targetURL, live) {
   // mediator _replicator database
@@ -291,5 +297,6 @@ var migrateAll = function (opts) {
 module.exports = {
   migrateDB: migrateDB,
   migrateList: migrateList,
-  migrateAll: migrateAll
+  migrateAll: migrateAll,
+  createReplicator: createReplicator
 }
