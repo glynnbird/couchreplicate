@@ -89,13 +89,19 @@ Replication errors can occur and have a multitude of causes. If a replication do
  - the target service may have a size restriction on documents. Cloudant instances on the IBM Cloud have a limit of 1MB per API request, so very large JSON documents would not make it
  - the target service may have a API rate limit in place. If the target is very busy, then there may be insufficient capacity left over to service the replication process
 
- ## Debugging
+### The _replicator database
 
- If you need to monitor replications more closely than watching the progress bars, then setting the `DEBUG` environment variable to `couchreplicate` before running the tool will send more status information to the console.
+The *couchreplicate* tool requires a database called `_replicator` to be present on the source cluster. The tool tries to create a the database if it doesn't already exist at the start of replication job. You can see the current and historical replication jobs in the Cloudant/CouchDB dashboard or by looking at the contents of the `_replicator` database yourself.
 
- e.g.
+Note that even if you `Ctrl-C` out of *couchreplicate*, any running replications will continue to proceed.
 
-     DEBUG=couchreplicate couchreplicate -d mydb -s http://u:p@localhost:5984 -t https://U:P@HOST.cloudant.com
+## Debugging
+
+If you need to monitor replications more closely than watching the progress bars, then setting the `DEBUG` environment variable to `couchreplicate` before running the tool will send more status information to the console.
+
+e.g.
+
+    DEBUG=couchreplicate couchreplicate -d mydb -s http://u:p@localhost:5984 -t https://U:P@HOST.cloudant.com
 
 ## Command-line reference
 
