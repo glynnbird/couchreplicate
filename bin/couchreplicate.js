@@ -12,6 +12,7 @@ var argv = require('yargs')
   .option('auth', { alias: 'x', describe: 'Also copy _security document', demandOption: false, default: false })
   .option('quiet', { alias: 'q', describe: 'Supress progress bars', demandOption: false, default: false })
   .option('live', { alias: 'l', describe: 'Setup live (continuous) replications instead', demandOption: false, default: false })
+  .option('nomonitor', { alias: 'n', describe: 'Don\'t monitor the replications after setup', demandOption: false, default: false })
   .help('help')
   .argv
 
@@ -20,13 +21,19 @@ var targetParsed = url.parse(argv.target)
 
 // check source URL
 if (!sourceParsed.protocol || !sourceParsed.hostname) {
-  console.error('invalid source URL')
+  console.error('Error: invalid source URL')
   process.exit(1)
 }
 
 // check target URL
 if (!targetParsed.protocol || !targetParsed.hostname) {
-  console.error('invalid target URL')
+  console.error('Error: invalid target URL')
+  process.exit(1)
+}
+
+// check for --nomonitor without live mode
+if (argv.nomonitor && !argv.live) {
+  console.error('Error: --nomonitor/-n is only applicable with the --live/-l option')
   process.exit(1)
 }
 

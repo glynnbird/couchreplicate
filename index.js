@@ -214,8 +214,19 @@ var migrateDB = function (opts) {
     }).then((data) => {
       ee.emit('status', status)
 
+      // optionally migrate the auth document
+      if (opts.auth) {
+        return migrateAuth(status.sourceURL, status.targetURL)
+      } else {
+
+      }
+    }).then((data) => {
       // monitor the replication
-      return monitorReplication(status, ee)
+      if (opts.nomonitor && opts.live) {
+        resolve(status)
+      } else {
+        return monitorReplication(status, ee)
+      }
     }).catch((e) => {
       var msg = 'error'
       if (e.error && e.error.reason) {
@@ -244,11 +255,7 @@ var migrateDB = function (opts) {
       if (bar) {
         bar.update(s.percent, { status: s.status })
       }
-      if (opts.auth) {
-        migrateAuth(status.sourceURL, status.targetURL).then(() => { resolve(s) })
-      } else {
-        resolve(s)
-      }
+      resolve(s)
     })
   })
 }
