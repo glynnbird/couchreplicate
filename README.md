@@ -113,6 +113,7 @@ e.g.
 - `--auth` / `-x` - also copy the `_security` document during replication
 - `--live` / `-l` - set up continuous replications instead of the default "one-shot" replication
 - `--quiet` / `-q` - suppress progress bars
+- `--nomonitor` / `-n` - don't monitor the replications - just start the replication processed and exit. Only works with `--live`/`-l`
 - `--help` / `-h` - show help message
 - `--version` / `-v` - show version number
 
