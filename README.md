@@ -117,6 +117,16 @@ e.g.
 - `--help` / `-h` - show help message
 - `--version` / `-v` - show version number
 
+## Command-line exit codes
+
+- 0 - success
+- 1 - invalid source URL
+- 2 - invalid target URL
+- 3 - `--nomonitor/-n` is only applicable with the `--live/-l` option
+- 4 - no source or target database names supplied
+- 5 - database names supplied in URLs and as other command-line options
+- 6 - runtime error
+
 ## Using couchreplicate programmatically
 
 Install the library into your own Node.js project
@@ -126,7 +136,7 @@ Install the library into your own Node.js project
 Load the module into your code
 
 ```js
-  const cm = require('couchmigrate')
+  const cm = require('couchreplicate')
 ```
 
 Set off a single replication:
@@ -171,7 +181,7 @@ or replicate an entire cluster:
     auth: true 
   }
   
-  cam.migrateAll(opts).then(() => {
+  cm.migrateAll(opts).then(() => {
     console.log('done')
   })
 ```
