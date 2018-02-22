@@ -28,13 +28,13 @@ if (!sourceParsed.protocol || !sourceParsed.hostname) {
 // check target URL
 if (!targetParsed.protocol || !targetParsed.hostname) {
   console.error('Error: invalid target URL')
-  process.exit(1)
+  process.exit(2)
 }
 
 // check for --nomonitor without live mode
 if (argv.nomonitor && !argv.live) {
   console.error('Error: --nomonitor/-n is only applicable with the --live/-l option')
-  process.exit(1)
+  process.exit(3)
 }
 
 // ensure that if database names are supplied in the URLs that
@@ -49,13 +49,13 @@ if (!sourceDbname && !targetDbname && !argv.databases && !argv.all) {
   console.error(' 1) supply source and target database names in the URLs')
   console.error(' 2) supply database name(s) with -d or --databases parameters')
   console.error(' 3) use the -a parameter to replicate all databases')
-  process.exit(2)
+  process.exit(4)
 }
 
 // database names supplied in URLs and in other parameters
 if ((sourceDbname || targetDbname) && (argv.databases || argv.all)) {
   console.error('ERROR: database names supplied in URLs and as other command-line options')
-  process.exit(3)
+  process.exit(5)
 }
 
 // calculate the replicatorURL
@@ -67,16 +67,25 @@ if (sourceDbname && targetDbname) {
   // migrate single database
   cam.createReplicator(replicatorURL).then(() => {
     return cam.migrateDB(argv)
-  }).then(() => {}).catch(console.error)
+  }).then(() => {}).catch((e) => {
+    console.error(e)
+    process.exit(6)
+  })
 } else if (argv.databases) {
   // or if a named database or list is supplied
   argv.databases = argv.databases.split(',')
   cam.createReplicator(replicatorURL).then(() => {
     return cam.migrateList(argv)
-  }).then(() => {}).catch(console.error)
+  }).then(() => {}).catch((e) => {
+    console.error(e)
+    process.exit(6)
+  })
 } else if (argv.all) {
   // or if all databases are required
   cam.createReplicator(replicatorURL).then(() => {
     return cam.migrateAll(argv)
-  }).then(() => {}).catch(console.error)
+  }).then(() => {}).catch((e) => {
+    console.error(e)
+    process.exit(6)
+  })
 }
