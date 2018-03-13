@@ -21,9 +21,9 @@ var isEmptyObject = function (obj) {
 // Handles present or absent trailing slash
 var extendURL = function (url, dbname) {
   if (url.match(/\/$/)) {
-    return url + dbname
+    return url + encodeURIComponent(dbname)
   } else {
-    return url + '/' + dbname
+    return url + '/' + encodeURIComponent(dbname)
   }
 }
 
@@ -61,7 +61,6 @@ var fetchReplicationStatusDocs = function (status) {
 
   // target database
   var t = cloudantqs(status.targetURL)
-
   return Promise.all([
     r.get(status.docId),
     t.info()
@@ -175,7 +174,7 @@ var migrateDB = function (opts) {
   var parsed = url.parse(opts.source)
 
   // turn source URL into '_replicator' database
-  var dbname = parsed.pathname.replace(/^\//, '')
+  var dbname = decodeURIComponent(parsed.pathname.replace(/^\//, ''))
   parsed.pathname = parsed.path = '/_replicator'
 
   // status object
@@ -184,7 +183,7 @@ var migrateDB = function (opts) {
     sourceURL: opts.source,
     targetURL: opts.target,
     dbname: dbname,
-    docId: dbname + '_' + (new Date()).getTime(),
+    docId: dbname.replace(/[^a-zA-Z0-9]/g, '') + '_' + (new Date()).getTime(),
     status: 'new',
     sourceDocCount: 0,
     targetDocCount: 0,
