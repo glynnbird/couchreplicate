@@ -1,6 +1,6 @@
 {
   "name": "couchreplicate",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "CouchDB/Cloudant database replication command-line tool",
   "main": "index.js",
   "bin": {
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ibm-watson-data-lab/couchreplicate.git"
+    "url": "git+https://github.com/glynnbird/couchreplicate.git"
   },
   "keywords": [
     "CouchDB",
@@ -24,13 +24,13 @@
   "author": "Glynn Bird <glynn.bird@gmail.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/ibm-watson-data-lab/couchreplicate/issues"
+    "url": "https://github.com/glynnbird/couchreplicate/issues"
   },
-  "homepage": "https://github.com/ibm-watson-data-lab/couchreplicate#readme",
+  "homepage": "https://github.com/glynnbird/couchreplicate#readme",
   "dependencies": {
     "ascii-progress": "^1.0.5",
     "async": "^2.6.0",
-    "cloudant-quickstart": "^1.25.2",
+    "cloudant-quickstart": "^1.25.3",
     "yargs": "^11.0.0"
   },
   "devDependencies": {
