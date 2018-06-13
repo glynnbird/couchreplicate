@@ -1,6 +1,6 @@
 {
   "name": "couchreplicate",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "CouchDB/Cloudant database replication command-line tool",
   "main": "index.js",
   "bin": {
@@ -30,7 +30,7 @@
   "dependencies": {
     "ascii-progress": "^1.0.5",
     "async": "^2.6.0",
-    "cloudant-quickstart": "^1.25.3",
+    "cloudant-quickstart": "^1.25.5",
     "yargs": "^11.0.0"
   },
   "devDependencies": {
