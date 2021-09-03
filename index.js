@@ -195,7 +195,7 @@ var migrateDB = function (opts) {
 
   // initialise progress bar
   if (!opts.quiet) {
-    var ProgressBar = require('ascii-progress')
+    var ProgressBar = require('@magicdawn/ascii-progress')
     bar = new ProgressBar({
       schema: ' ' + padEnd(dbname, 20, ' ') + ' [:bar.green] :percent.green :elapseds.cyan :status.blue',
       total: 100,
