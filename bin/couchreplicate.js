@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-var cam = require('../index.js')
-var url = require('url')
+const cam = require('../index.js')
+const url = require('url')
 
-var argv = require('yargs')
+const argv = require('yargs')
   .option('source', { alias: 's', describe: 'Cloudant source URL', demandOption: true })
   .option('target', { alias: 't', describe: 'Cloudant target URL', demandOption: true })
   .option('concurrency', { alias: 'c', describe: 'Number of replications to run at once', demandOption: false, default: 1 })
@@ -16,8 +16,8 @@ var argv = require('yargs')
   .help('help')
   .argv
 
-var sourceParsed = url.parse(argv.source)
-var targetParsed = url.parse(argv.target)
+const sourceParsed = new url.URL(argv.source)
+const targetParsed = new url.URL(argv.target)
 
 // check source URL
 if (!sourceParsed.protocol || !sourceParsed.hostname) {
@@ -39,8 +39,8 @@ if (argv.nomonitor && !argv.live) {
 
 // ensure that if database names are supplied in the URLs that
 // there is both a source and target name
-var sourceDbname = sourceParsed.pathname.replace(/^\//, '')
-var targetDbname = sourceParsed.pathname.replace(/^\//, '')
+const sourceDbname = sourceParsed.pathname.replace(/^\//, '')
+const targetDbname = sourceParsed.pathname.replace(/^\//, '')
 
 // not databases names supplied anywhere
 if (!sourceDbname && !targetDbname && !argv.databases && !argv.all) {
@@ -60,7 +60,7 @@ if ((sourceDbname || targetDbname) && (argv.databases || argv.all)) {
 
 // calculate the replicatorURL
 sourceParsed.pathname = sourceParsed.path = '/_replicator'
-var replicatorURL = url.format(sourceParsed)
+const replicatorURL = url.format(sourceParsed)
 
 // if URLS contain database names
 if (sourceDbname && targetDbname) {

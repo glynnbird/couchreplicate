@@ -1,10 +1,12 @@
-var cloudantqs = require('cloudant-quickstart')
-var async = require('async')
-var EventEmitter = require('events')
-var url = require('url')
+const Nano = require('nano')
+const EventEmitter = require('events')
+const url = require('url')
+const qrate = require('qrate')
+const cliProgress = require('cli-progress')
 
 // pad string
-var padEnd = function (str, targetLength, padString) {
+/*
+const padEnd = function (str, targetLength, padString) {
   if (str.length < targetLength) {
     do {
       str += padString
@@ -13,13 +15,14 @@ var padEnd = function (str, targetLength, padString) {
   return str
 }
 
-var isEmptyObject = function (obj) {
+const isEmptyObject = function (obj) {
   return typeof obj === 'object' && Object.keys(obj).length === 0
 }
+*/
 
 // extend a URL by adding a database name
 // Handles present or absent trailing slash
-var extendURL = function (url, dbname) {
+const extendURL = function (url, dbname) {
   if (url.match(/\/$/)) {
     return url + encodeURIComponent(dbname)
   } else {
@@ -28,104 +31,98 @@ var extendURL = function (url, dbname) {
 }
 
 // get source document count before we start
-var getStartInfo = function (sourceURL) {
-  return cloudantqs(sourceURL).info()
+const getStartInfo = async function (status) {
+  return status.sdb.info()
 }
 
 // create the _replicator database
-var createReplicator = function (replicatorURL) {
-  var r = cloudantqs(replicatorURL)
-  return r.create({indexAll: false})
+const createReplicator = async function () {
+  return true
 }
 
 // start replicating by creating a _replicator document
-var startReplication = function (replicatorURL, docId, sourceURL, targetURL, live) {
-  // mediator _replicator database
-  var r = cloudantqs(replicatorURL)
-
+const startReplication = async function (status, docId, sourceURL, targetURL, live) {
   // start the replication
-  var obj = {
+  const obj = {
     _id: docId,
     source: sourceURL,
     target: targetURL,
     create_target: true,
     continuous: live
   }
-  return r.insert(obj)
+  return status.rdb.insert(obj)
 }
 
 // fetch the replication document and the target database's info
-var fetchReplicationStatusDocs = function (status) {
-  // mediator _replicator database
-  var r = cloudantqs(status.replicatorURL)
-
+const fetchReplicationStatusDocs = async function (status) {
   // target database
-  var t = cloudantqs(status.targetURL)
-  return Promise.all([
-    r.get(status.docId),
-    t.info()
-  ]).then((data) => {
-    status.status = data[0]._replication_state || 'new'
-    status.targetDocCount = data[1].doc_count + data[1].doc_del_count
-    if (typeof data[0]._replication_stats === 'object') {
-      status.docFail = data[0]._replication_stats.doc_write_failures
+  const data = await Promise.allSettled([
+    status.rdb.get(status.docId),
+    status.tdb.info()
+  ])
+  if (data[0].status === 'fulfilled') {
+    status.status = data[0].value._replication_state || 'new'
+    if (typeof data[0].value._replication_stats === 'object') {
+      status.docFail = data[0].value._replication_stats.doc_write_failures
     }
-    if (process.env.DEBUG === 'couchreplicate') {
-      console.error(JSON.stringify(data))
-    }
-    return status
-  }).catch((e) => { return status })
+  }
+  if (data[1].status === 'fulfilled') {
+    status.targetDocCount = data[1].value.doc_count + data[1].value.doc_del_count
+  }
+  if (process.env.DEBUG === 'couchreplicate') {
+    console.error(JSON.stringify(data))
+  }
+  return status
+}
+
+const wait = async function (ms) {
+  return new Promise((resolve, reject) => {
+    setTimeout(resolve, ms)
+  })
 }
 
 // poll the replication status until it finishes correctly or in error
-var monitorReplication = function (status, ee) {
-  var finished = false
+const monitorReplication = async function (status, ee) {
+  let finished = false
 
-  async.doUntil(
-    (done) => {
-       // after 5 seconds
-      setTimeout(() => {
-         // get the replication status
-        fetchReplicationStatusDocs(status).then(() => {
-          if (status.status === 'error' || status.status === 'failed') {
-            status.error = true
-            finished = true
-          }
-          if (status.status === 'completed') {
-            finished = true
-          }
-          if (status.sourceDocCount > 0) {
-            status.percent = status.targetDocCount / status.sourceDocCount
-          }
-          ee.emit('status', status)
-          done()
-        })
-      }, 5000)
-    },
-    // return when finished
-    () => { return finished },
-    (err, results) => {
-      if (err || status.error) {
-        status.status = 'error'
-        ee.emit('status', status)
-        ee.emit('error', status)
-      } else {
-        ee.emit('completed', status)
-      }
+  do {
+    await fetchReplicationStatusDocs(status)
+    if (status.status === 'error' || status.status === 'failed') {
+      status.error = true
+      finished = true
     }
-  )
+    if (status.status === 'completed') {
+      finished = true
+    }
+    if (status.sourceDocCount > 0) {
+      status.percent = status.targetDocCount / status.sourceDocCount
+    }
+    ee.emit('status', status)
+    // console.log('status', status)
+    if (!finished) {
+      await wait(5000)
+    }
+  } while (!finished)
+  if (status.error) {
+    status.status = 'error'
+    ee.emit('status', status)
+    ee.emit('error', status)
+  } else {
+    ee.emit('completed', status)
+  }
 }
 
 // migrate the _security document from the source to the target
-var migrateAuth = function (sourceURL, targetURL) {
+/* let migrateAuth = function (sourceURL, targetURL) {
+
   return new Promise((resolve, reject) => {
-    var s = cloudantqs(sourceURL)
-    var t = cloudantqs(targetURL)
-    var securityDoc = '_security'
+    let s = cloudantqs(sourceURL)
+    let t = cloudantqs(targetURL)
+    let securityDoc = '_security'
 
     // establish the source account's username
-    var parsed = url.parse(sourceURL)
-    var username = null
+    let parsed = url.parse(sourceURL)
+    let username = null
     if (parsed.auth) {
       username = parsed.auth.split(':')[0]
     }
@@ -148,13 +145,13 @@ var migrateAuth = function (sourceURL, targetURL) {
       resolve()
     }).catch(reject)
   })
-}
+} */
 
 // migrate a single database from source ---> target
-var migrateDB = function (opts) {
+const migrateSingleDB = async function (opts) {
   // sanity check URLs
-  var sourceParsed = url.parse(opts.source)
-  var targetParsed = url.parse(opts.target)
+  const sourceParsed = new url.URL(opts.source)
+  const targetParsed = new url.URL(opts.target)
 
   // check source URL
   if (!sourceParsed.protocol || !sourceParsed.hostname) {
@@ -167,21 +164,23 @@ var migrateDB = function (opts) {
   }
 
   // we return an event emitter so we can give real-time updates
-  var ee = new EventEmitter()
-  var bar = null
+  const ee = opts.ee || new EventEmitter()
 
   // extract dbname
-  var parsed = url.parse(opts.source)
+  const rparsed = new url.URL(opts.source)
 
   // turn source URL into '_replicator' database
-  var dbname = decodeURIComponent(parsed.pathname.replace(/^\//, ''))
-  parsed.pathname = parsed.path = '/_replicator'
+  const dbname = decodeURIComponent(sourceParsed.pathname.replace(/^\//, ''))
+  rparsed.pathname = rparsed.path = '/_replicator'
 
   // status object
-  var status = {
-    replicatorURL: url.format(parsed),
+  const status = {
+    replicatorURL: rparsed.href,
     sourceURL: opts.source,
     targetURL: opts.target,
+    sdb: Nano(opts.source),
+    tdb: Nano(opts.target),
+    rdb: Nano(rparsed.href),
     dbname: dbname,
     docId: dbname.replace(/[^a-zA-Z0-9]/g, '') + '_' + (new Date()).getTime(),
     status: 'new',
@@ -193,41 +192,25 @@ var migrateDB = function (opts) {
     live: opts.live
   }
 
-  // initialise progress bar
-  if (!opts.quiet) {
-    var ProgressBar = require('ascii-progress')
-    bar = new ProgressBar({
-      schema: ' ' + padEnd(dbname, 20, ' ') + ' [:bar.green] :percent.green :elapseds.cyan :status.blue',
-      total: 100,
-      status: ''
-    })
-  }
+  const info = await getStartInfo(status)
+  status.sourceDocCount = info.doc_count + info.doc_del_count
 
-  return new Promise((resolve, reject) => {
-    // get source doc count
-    getStartInfo(status.sourceURL).then((info) => {
-      status.sourceDocCount = info.doc_count + info.doc_del_count
+  await startReplication(status, status.docId, status.sourceURL, status.targetURL, status.live)
+  ee.emit('status', status)
 
-      // start the replication
-      return startReplication(status.replicatorURL, status.docId, status.sourceURL, status.targetURL, status.live)
-    }).then((data) => {
-      ee.emit('status', status)
+  // optionally migrate the auth document
+  // if (opts.auth) {
+  //   await migrateAuth(status.sourceURL, status.targetURL)
+  // }
 
-      // optionally migrate the auth document
-      if (opts.auth) {
-        return migrateAuth(status.sourceURL, status.targetURL)
-      } else {
-
-      }
-    }).then((data) => {
-      // monitor the replication
-      if (opts.nomonitor && opts.live) {
-        resolve(status)
-      } else {
-        return monitorReplication(status, ee)
-      }
-    }).catch((e) => {
-      var msg = 'error'
+  // monitor the replication
+  if (opts.nomonitor && opts.live) {
+    return status
+  } else {
+    try {
+      await monitorReplication(status, ee)
+    } catch (e) {
+      let msg = 'error'
       if (e.error && e.error.reason) {
         msg += ' - ' + e.error.reason
       }
@@ -235,32 +218,12 @@ var migrateDB = function (opts) {
       status.error = true
       ee.emit('status', status)
       ee.emit('error', msg)
-    })
-
-    // receive status update events from the monitoring function
-    ee.on('status', (s) => {
-      if (bar) {
-        bar.update(s.percent, { status: s.status })
-      }
-    })
-    .on('error', (e) => {
-      reject(e)
-    })
-    .on('completed', (s) => {
-      if (status.docFail > 0) {
-        status.status = 'error: ' + status.docFail + ' docs failed'
-        status.error = true
-      }
-      if (bar) {
-        bar.update(s.percent, { status: s.status })
-      }
-      resolve(s)
-    })
-  })
+    }
+  }
 }
 
 // migrate a list of documents from source --> target
-var migrateList = function (opts) {
+const migrateList = async function (opts) {
   // enforce maximum number of continuous replications
   if (opts.live && opts.databases.length > 50) {
     throw new Error('Maximum number of continuous replications is fifty')
@@ -271,23 +234,46 @@ var migrateList = function (opts) {
     opts.concurrency = 50
   }
 
+  // progress bar
+  let multibar
+  if (!opts.quiet) {
+    // create new container
+    multibar = new cliProgress.MultiBar({
+      clearOnComplete: false,
+      hideCursor: true,
+      format: '{dbname} {bar} | {status} | ETA: {eta_formatted} | {percentage}%'
+    }, cliProgress.Presets.shades_grey)
+  }
+
   // get database names
   return new Promise((resolve, reject) => {
     // async queue of migrations
-    var q = async.queue((dbname, done) => {
-      var newopts = JSON.parse(JSON.stringify(opts))
-      newopts.source = extendURL(newopts.source, dbname)
-      newopts.target = extendURL(newopts.target, dbname)
-      migrateDB(newopts).then((data) => {
-        done(null, data)
-      }).catch((e) => {
-        done(e, null)
+    const q = qrate(async (dbname) => {
+      const newopts = JSON.parse(JSON.stringify(opts))
+      if (!newopts.quiet) {
+        newopts.bar = multibar.create(100, 0)
+        newopts.bar.update(0, { dbname, status: '_' })
+      }
+      if (!opts.skipExtend) {
+        newopts.source = extendURL(newopts.source, dbname)
+        newopts.target = extendURL(newopts.target, dbname)
+      }
+      newopts.ee = new EventEmitter()
+      newopts.ee.on('status', (s) => {
+        if (!newopts.quiet) {
+          newopts.bar.update(Math.floor(s.percent * 100), { dbname, status: s.status })
+        }
+      }).on('completed', (s) => {
+        if (!newopts.quiet) {
+          newopts.bar.update(100, { dbname, status: s.status })
+        }
       })
+      await migrateSingleDB(newopts)
     }, opts.concurrency)
 
     // push to the queue
-    for (var i in opts.databases) {
-      var dbname = opts.databases[i]
+    for (const i in opts.databases) {
+      const dbname = opts.databases[i]
       if (!dbname.match(/^_/)) {
         q.push(dbname)
       }
@@ -296,18 +282,30 @@ var migrateList = function (opts) {
     // when the queue is drained, we're done
     q.drain = () => {
       resolve()
+      if (!opts.quiet) {
+        multibar.stop()
+      }
     }
   })
 }
 
 // migrate all documents
-var migrateAll = function (opts) {
+const migrateAll = async function (opts) {
   // get db names and push to the queue
-  var s = cloudantqs(opts.source, 'a')
-  return s.dbs().then((data) => {
-    opts.databases = data
-    return migrateList(opts)
-  })
+  const nano = Nano(opts.source)
+  const data = await nano.db.list()
+  opts.databases = data
+  await migrateList(opts)
+}
+
+// migrate a single database
+const migrateDB = async function (opts) {
+  // convert to a list of database names to avoid code duplication
+  const sourceParsed = new url.URL(opts.source)
+  const dbname = decodeURIComponent(sourceParsed.pathname.replace(/^\//, ''))
+  opts.databases = [dbname]
+  opts.skipExtend = true
+  await migrateList(opts)
 }
 
 module.exports = {
