@@ -59,8 +59,8 @@ if ((sourceDbname || targetDbname) && (argv.databases || argv.all)) {
 }
 
 // calculate the replicatorURL
-sourceParsed.pathname = sourceParsed.path = '/_replicator'
-const replicatorURL = url.format(sourceParsed)
+sourceParsed.pathname = sourceParsed.path = ''
+const replicatorURL = sourceParsed.href
 
 // if URLS contain database names
 if (sourceDbname && targetDbname) {

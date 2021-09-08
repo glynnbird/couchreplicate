@@ -4,21 +4,9 @@ const url = require('url')
 const qrate = require('qrate')
 const cliProgress = require('cli-progress')
 
-// pad string
-/*
-const padEnd = function (str, targetLength, padString) {
-  if (str.length < targetLength) {
-    do {
-      str += padString
-    } while (str.length < targetLength)
-  }
-  return str
-}
-
 const isEmptyObject = function (obj) {
   return typeof obj === 'object' && Object.keys(obj).length === 0
 }
-*/
 
 // extend a URL by adding a database name
 // Handles present or absent trailing slash
@@ -36,7 +24,13 @@ const getStartInfo = async function (status) {
 }
 
 // create the _replicator database
-const createReplicator = async function () {
+const createReplicator = async function (u) {
+  const n = Nano(u)
+  try {
+    await n.db.create('_replicator')
+  } catch (e) {
+    // do nothing - _replicator exists already
+  }
   return true
 }
 
@@ -113,39 +107,31 @@ const monitorReplication = async function (status, ee) {
 }
 
 // migrate the _security document from the source to the target
-/* let migrateAuth = function (sourceURL, targetURL) {
+const migrateAuth = async function (opts) {
+  const securityDoc = '_security'
 
-  return new Promise((resolve, reject) => {
-    let s = cloudantqs(sourceURL)
-    let t = cloudantqs(targetURL)
-    let securityDoc = '_security'
+  // establish the source account's username
+  const parsed = new url.URL(opts.sourceURL)
+  let username = null
+  if (parsed.auth) {
+    username = parsed.auth.split(':')[0]
+  }
 
-    // establish the source account's username
-    let parsed = url.parse(sourceURL)
-    let username = null
-    if (parsed.auth) {
-      username = parsed.auth.split(':')[0]
-    }
+  // fetch the source database's _security document
+  const data = await opts.sdb.get(securityDoc)
+  // if it's empty, do nothing
+  if (isEmptyObject(data)) {
+    return
+  }
 
-    // fetch the source database's _security document
-    s.get(securityDoc).then((data) => {
-      // if it's empty, do nothing
-      if (isEmptyObject(data)) {
-        return resolve()
-      }
+  // remove any reference to the source database's username
+  if (username && typeof data.cloudant === 'object') {
+    delete data.cloudant[username]
+  }
 
-      // remove any reference to the source database's username
-      if (username && typeof data.cloudant === 'object') {
-        delete data.cloudant[username]
-      }
-
-      // write the source's _security document to the target
-      return t.update(securityDoc, data)
-    }).then((data) => {
-      resolve()
-    }).catch(reject)
-  })
-} */
+  data._id = securityDoc
+  await opts.tdb.insert(data)
+}
 
 // migrate a single database from source ---> target
 const migrateSingleDB = async function (opts) {
@@ -199,9 +185,9 @@ const migrateSingleDB = async function (opts) {
   ee.emit('status', status)
 
   // optionally migrate the auth document
-  // if (opts.auth) {
-  //   await migrateAuth(status.sourceURL, status.targetURL)
-  // }
+  if (opts.auth) {
+    await migrateAuth(status)
+  }
 
   // monitor the replication
   if (opts.nomonitor && opts.live) {
