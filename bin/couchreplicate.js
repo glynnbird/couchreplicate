@@ -62,30 +62,37 @@ if ((sourceDbname || targetDbname) && (argv.databases || argv.all)) {
 sourceParsed.pathname = sourceParsed.path = ''
 const replicatorURL = sourceParsed.href
 
-// if URLS contain database names
-if (sourceDbname && targetDbname) {
-  // migrate single database
-  cam.createReplicator(replicatorURL).then(() => {
-    return cam.migrateDB(argv)
-  }).then(() => {}).catch((e) => {
-    console.error(e)
-    process.exit(6)
-  })
-} else if (argv.databases) {
-  // or if a named database or list is supplied
-  argv.databases = argv.databases.split(',')
-  cam.createReplicator(replicatorURL).then(() => {
-    return cam.migrateList(argv)
-  }).then(() => {}).catch((e) => {
-    console.error(e)
-    process.exit(6)
-  })
-} else if (argv.all) {
-  // or if all databases are required
-  cam.createReplicator(replicatorURL).then(() => {
-    return cam.migrateAll(argv)
-  }).then(() => {}).catch((e) => {
-    console.error(e)
-    process.exit(6)
-  })
+const main = async () => {
+  // if URLS contain database names
+  if (sourceDbname && targetDbname) {
+    // migrate single database
+    try {
+      await cam.createReplicator(replicatorURL)
+      await cam.migrateDB(argv)
+    } catch (e) {
+      console.error(e)
+      process.exit(6)
+    }
+  } else if (argv.databases) {
+    // or if a named database or list is supplied
+    argv.databases = argv.databases.split(',')
+    try {
+      await cam.createReplicator(replicatorURL)
+      await cam.migrateList(argv)
+    } catch (e) {
+      console.error(e)
+      process.exit(6)
+    }
+  } else if (argv.all) {
+    // or if all databases are required
+    try {
+      await cam.createReplicator(replicatorURL)
+      await cam.migrateAll(argv)
+    } catch (e) {
+      console.error(e)
+      process.exit(6)
+    }
+  }
 }
+
+main()

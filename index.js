@@ -167,7 +167,7 @@ const migrateSingleDB = async function (opts) {
     sdb: Nano(opts.source),
     tdb: Nano(opts.target),
     rdb: Nano(rparsed.href),
-    dbname: dbname,
+    dbname,
     docId: dbname.replace(/[^a-zA-Z0-9]/g, '') + '_' + (new Date()).getTime(),
     status: 'new',
     sourceDocCount: 0,
@@ -295,8 +295,8 @@ const migrateDB = async function (opts) {
 }
 
 module.exports = {
-  migrateDB: migrateDB,
-  migrateList: migrateList,
-  migrateAll: migrateAll,
-  createReplicator: createReplicator
+  migrateDB,
+  migrateList,
+  migrateAll,
+  createReplicator
 }

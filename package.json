@@ -1,6 +1,6 @@
 {
   "name": "couchreplicate",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CouchDB/Cloudant database replication command-line tool",
   "main": "index.js",
   "bin": {
@@ -29,12 +29,12 @@
   },
   "homepage": "https://github.com/glynnbird/couchreplicate#readme",
   "dependencies": {
-    "cli-progress": "^3.9.0",
-    "nano": "^9.0.4",
+    "cli-progress": "^3.11.1",
+    "nano": "^10.0.0",
     "qrate": "^1.2.1",
-    "yargs": "^17.1.1"
+    "yargs": "^17.5 .1"
   },
   "devDependencies": {
-    "standard": "^16.0.3"
+    "standard": "^17.0.0"
   }
 }
