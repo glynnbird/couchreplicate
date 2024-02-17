@@ -109,7 +109,7 @@ const monitorReplication = async function (status, ee) {
 // migrate the _security document from the source to the target
 const migrateAuth = async function (opts) {
   const securityDoc = '_security'
-
+  
   // establish the source account's username
   const parsed = new url.URL(opts.sourceURL)
   let username = null
@@ -130,7 +130,12 @@ const migrateAuth = async function (opts) {
   }
 
   data._id = securityDoc
-  await opts.tdb.insert(data)
+
+  opts.tdb.insert(data, securityDoc).then((res, err) => {
+    if (err) {
+      console.log(`Error inserting security object: ${JSON.stringify(err)}`)
+    }
+  })  
 }
 
 // migrate a single database from source ---> target
