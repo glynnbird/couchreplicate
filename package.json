@@ -1,6 +1,6 @@
 {
   "name": "couchreplicate",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "CouchDB/Cloudant database replication command-line tool",
   "main": "index.js",
   "bin": {
