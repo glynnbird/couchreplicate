@@ -2,22 +2,81 @@
 
 const cam = require('../index.js')
 const url = require('url')
+const syntax =
+`Syntax:
+--source/-s                   CouchDB source URL                              (required)
+--target/-t                   CouchDB target URL                              (required)
+--concurrency/-c              Number of replications to run at once           (default: 1)
+--databases/-d                Names of databases to replicate e.g. a,b,c
+--all/-a                      Replicate all databases
+--auth/-x                     Also copy _security document
+--quiet/-q                    Supress progress bars                          (default: false)
+--live/-l                     Setup live (continuous) replications instead   (default: false)
+--nomonitor/-n                Don't monitor the replications after setup     (default: false)
+--deletions                         Include deleted docs (default: false)
+`
+const { parseArgs } = require('node:util')
+const argv = process.argv.slice(2)
+const options = {
+  source: {
+    type: 'string',
+    short: 's'
+  },
+  target: {
+    type: 'string',
+    short: 't'
+  },
+  concurrency: {
+    type: 'string',
+    short: 'c',
+    default: '1'
+  },
+  databases: {
+    type: 'string',
+    short: 'd'
+  },
+  all: {
+    type: 'boolean',
+    short: 'a',
+    default: false
+  },
+  auth: {
+    type: 'boolean',
+    short: 'x',
+    default: false
+  },
+  quiet: {
+    type: 'boolean',
+    short: 'q',
+    default: false
+  },
+  nomonitor: {
+    type: 'boolean',
+    short: 'n',
+    default: false
+  },
+  help: {
+    type: 'boolean',
+    short: 'h',
+    default: false
+  }
+}
 
-const argv = require('yargs')
-  .option('source', { alias: 's', describe: 'Cloudant source URL', demandOption: true })
-  .option('target', { alias: 't', describe: 'Cloudant target URL', demandOption: true })
-  .option('concurrency', { alias: 'c', describe: 'Number of replications to run at once', demandOption: false, default: 1 })
-  .option('databases', { alias: 'd', describe: 'Names of the database to replicate e.g. a,b,c', demandOption: false, default: '' })
-  .option('all', { alias: 'a', describe: 'Replicate all databases', demandOption: false, default: false })
-  .option('auth', { alias: 'x', describe: 'Also copy _security document', demandOption: false, default: false })
-  .option('quiet', { alias: 'q', describe: 'Supress progress bars', demandOption: false, default: false })
-  .option('live', { alias: 'l', describe: 'Setup live (continuous) replications instead', demandOption: false, default: false })
-  .option('nomonitor', { alias: 'n', describe: 'Don\'t monitor the replications after setup', demandOption: false, default: false })
-  .help('help')
-  .argv
+// parse command-line options
+const { values } = parseArgs({ argv, options })
 
-const sourceParsed = new url.URL(argv.source)
-const targetParsed = new url.URL(argv.target)
+// help mode
+if (values.help) {
+  console.log(syntax)
+  process.exit(0)
+}
+
+// string to int
+values.concurrency = parseInt(values.concurrency)
+
+// parse the URLs
+const sourceParsed = new url.URL(values.source)
+const targetParsed = new url.URL(values.target)
 
 // check source URL
 if (!sourceParsed.protocol || !sourceParsed.hostname) {
@@ -32,7 +91,7 @@ if (!targetParsed.protocol || !targetParsed.hostname) {
 }
 
 // check for --nomonitor without live mode
-if (argv.nomonitor && !argv.live) {
+if (values.nomonitor && !values.live) {
   console.error('Error: --nomonitor/-n is only applicable with the --live/-l option')
   process.exit(3)
 }
@@ -43,7 +102,7 @@ const sourceDbname = sourceParsed.pathname.replace(/^\//, '')
 const targetDbname = sourceParsed.pathname.replace(/^\//, '')
 
 // not databases names supplied anywhere
-if (!sourceDbname && !targetDbname && !argv.databases && !argv.all) {
+if (!sourceDbname && !targetDbname && !values.databases && !values.all) {
   console.error('ERROR: no source or target database names supplied.')
   console.error('Either:')
   console.error(' 1) supply source and target database names in the URLs')
@@ -53,7 +112,7 @@ if (!sourceDbname && !targetDbname && !argv.databases && !argv.all) {
 }
 
 // database names supplied in URLs and in other parameters
-if ((sourceDbname || targetDbname) && (argv.databases || argv.all)) {
+if ((sourceDbname || targetDbname) && (values.databases || values.all)) {
   console.error('ERROR: database names supplied in URLs and as other command-line options')
   process.exit(5)
 }
@@ -68,26 +127,26 @@ const main = async () => {
     // migrate single database
     try {
       await cam.createReplicator(replicatorURL)
-      await cam.migrateDB(argv)
+      await cam.migrateDB(values)
     } catch (e) {
       console.error(e)
       process.exit(6)
     }
-  } else if (argv.databases) {
+  } else if (values.databases) {
     // or if a named database or list is supplied
-    argv.databases = argv.databases.split(',')
+    values.databases = values.databases.split(',')
     try {
       await cam.createReplicator(replicatorURL)
-      await cam.migrateList(argv)
+      await cam.migrateList(values)
     } catch (e) {
       console.error(e)
       process.exit(6)
     }
-  } else if (argv.all) {
+  } else if (values.all) {
     // or if all databases are required
     try {
       await cam.createReplicator(replicatorURL)
-      await cam.migrateAll(argv)
+      await cam.migrateAll(values)
     } catch (e) {
       console.error(e)
       process.exit(6)
