@@ -1,8 +1,13 @@
-const Nano = require('nano')
 const EventEmitter = require('events')
 const url = require('url')
 const qrate = require('qrate')
+const ccurllib = require('ccurllib')
 const cliProgress = require('cli-progress')
+const pkg = require('./package.json')
+const h = {
+  'user-agent': `${pkg.name}@${pkg.version}`,
+  'content-type': 'application/json'
+}
 
 const isEmptyObject = function (obj) {
   return typeof obj === 'object' && Object.keys(obj).length === 0
@@ -20,14 +25,24 @@ const extendURL = function (url, dbname) {
 
 // get source document count before we start
 const getStartInfo = async function (status) {
-  return status.sdb.info()
+  const req = {
+    url: status.sourceURL,
+    method: 'get',
+    headers: h
+  }
+  const response = await ccurllib.request(req)
+  return response.result
 }
 
 // create the _replicator database
 const createReplicator = async function (u) {
-  const n = Nano(u)
+  const req = {
+    method: 'put',
+    url: extendURL(u, '_replicator'),
+    headers: h
+  }
   try {
-    await n.db.create('_replicator')
+    await ccurllib.request(req)
   } catch (e) {
     // do nothing - _replicator exists already
   }
@@ -44,15 +59,42 @@ const startReplication = async function (status, docId, sourceURL, targetURL, li
     create_target: true,
     continuous: live
   }
-  return status.rdb.insert(obj)
+  const req = {
+    method: 'post',
+    url: status.replicatorURL,
+    headers: h,
+    body: JSON.stringify(obj)
+  }
+  const response = await ccurllib.request(req)
+  return response.result
+}
+
+const getReplStatus = async (status) => {
+  const req = {
+    method: 'get',
+    headers: h,
+    url: extendURL(status.replicatorURL, status.docId)
+  }
+  const response = await ccurllib.request(req)
+  return response.result
+}
+
+const getTargetInfo = async (status) => {
+  const req = {
+    method: 'get',
+    headers: h,
+    url: status.targetURL
+  }
+  const response = await ccurllib.request(req)
+  return response.result
 }
 
 // fetch the replication document and the target database's info
 const fetchReplicationStatusDocs = async function (status) {
   // target database
   const data = await Promise.allSettled([
-    status.rdb.get(status.docId),
-    status.tdb.info()
+    getReplStatus(status),
+    getTargetInfo(status)
   ])
   if (data[0].status === 'fulfilled') {
     status.status = data[0].value._replication_state || 'new'
@@ -118,7 +160,13 @@ const migrateAuth = async function (opts) {
   }
 
   // fetch the source database's _security document
-  const data = await opts.sdb.get(securityDoc)
+  let req = {
+    method: 'get',
+    url: extendURL(opts.sourceURL, securityDoc),
+    headers: h
+  }
+  let response = await ccurllib.request(req)
+  let data = response.result
   // if it's empty, do nothing
   if (isEmptyObject(data)) {
     return
@@ -131,11 +179,12 @@ const migrateAuth = async function (opts) {
 
   data._id = securityDoc
 
-  opts.tdb.insert(data, securityDoc).then((res, err) => {
-    if (err) {
-      console.log(`Error inserting security object: ${JSON.stringify(err)}`)
-    }
-  })  
+  req = {
+    method: 'put',
+    url: extendURL(opts.targetURL, securityDoc),
+    headers: h
+  }
+  response = await ccurllib.request(req)
 }
 
 // migrate a single database from source ---> target
@@ -169,9 +218,6 @@ const migrateSingleDB = async function (opts) {
     replicatorURL: rparsed.href,
     sourceURL: opts.source,
     targetURL: opts.target,
-    sdb: Nano(opts.source),
-    tdb: Nano(opts.target),
-    rdb: Nano(rparsed.href),
     dbname,
     docId: dbname.replace(/[^a-zA-Z0-9]/g, '') + '_' + (new Date()).getTime(),
     status: 'new',
@@ -283,8 +329,13 @@ const migrateList = async function (opts) {
 // migrate all documents
 const migrateAll = async function (opts) {
   // get db names and push to the queue
-  const nano = Nano(opts.source)
-  const data = await nano.db.list()
+  const req = {
+    url: extendURL(opts.source, '_all_dbs'),
+    method: 'get',
+    headers: h
+  }
+  const response = await ccurllib.request(req)
+  const data = response.result
   opts.databases = data
   await migrateList(opts)
 }
