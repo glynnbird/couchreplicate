@@ -1,12 +1,8 @@
 # couchreplicate
 
-[![Build Status](https://travis-ci.org/ibm-watson-data-lab/couchreplicate.svg?branch=master)](https://travis-ci.org/ibm-watson-data-lab/couchreplicate) [![npm version](https://badge.fury.io/js/couchreplicate.svg)](https://badge.fury.io/js/couchreplicate)
-
 This is a command-line tool and library that helps coordinate [Apache CouchDB](http://couchdb.apache.org/)™ or [IBM Cloudant](https://www.ibm.com/cloud/cloudant) replications. It can be used to replicate a single database, multiple databases or an entire cluster from a source instance to a target instance.
 
 It is written in Node.js and can be installed from `npm` or used programmatically in your own Node.js projects.
-
-![screenshot](img/couchreplicate.gif)
 
 ## Pre-requisites
 
@@ -73,11 +69,7 @@ Some things to note:
 
 ### Errors during replication
 
-Replication errors can occur and have a multitude of causes. If a replication does not complete successfully, you may see a status like this:
-
-```sh
- cities [▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇——] 97% 21.1s error
- ```
+Replication errors can occur and have a multitude of causes.
 
  - the document count may not reach 100%
  - the status string at right-hand side will read 'error'
@@ -136,7 +128,7 @@ Install the library into your own Node.js project
 Load the module into your code
 
 ```js
-  const cm = require('couchreplicate')
+import * as couchreplicate from 'couchreplicate'
 ```
 
 Set off a single replication:
@@ -148,15 +140,13 @@ Set off a single replication:
     quiet: true,
     auth: true 
   }
-  cm.migrateDB(opts).then(() => {
-    console.log('done')
-  })
+  await couchreplicate.migrateDB(opts)
 ```
 
 multiple replications:
 
 ```js
-  var opts = {
+  const opts = {
     source: 'http://u:p@localhost:5984',
     target: 'https://U:P@HOST.cloudant.com',
     databases: ['animals', 'minerals', 'vegetables'],
@@ -165,15 +155,13 @@ multiple replications:
     auth: true 
   }
   
-  cm.migrateList(opts).then(() => {
-    console.log('done')
-  })
+  await couchreplicate.migrateList(opts)
 ```
 
 or replicate an entire cluster:
 
 ```js
-  var opts = {
+  const opts = {
     source: 'http://u:p@localhost:5984',
     target: 'https://U:P@HOST.cloudant.com',
     quiet: false,
@@ -181,7 +169,5 @@ or replicate an entire cluster:
     auth: true 
   }
   
-  cm.migrateAll(opts).then(() => {
-    console.log('done')
-  })
+  await couchreplicate.migrateAll(opts)
 ```

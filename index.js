@@ -1,9 +1,10 @@
-const EventEmitter = require('events')
-const url = require('url')
-const qrate = require('qrate')
-const ccurllib = require('ccurllib')
-const cliProgress = require('cli-progress')
-const pkg = require('./package.json')
+import { EventEmitter } from 'node:events'
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import qrate from 'qrate'
+import * as ccurllib from 'ccurllib'
+
+const pkg = JSON.parse(readFileSync(path.join(import.meta.dirname, 'package.json'), { encoding: 'utf8' }))
 const h = {
   'user-agent': `${pkg.name}@${pkg.version}`,
   'content-type': 'application/json'
@@ -35,7 +36,7 @@ const getStartInfo = async function (status) {
 }
 
 // create the _replicator database
-const createReplicator = async function (u) {
+export async function createReplicator(u) {
   const req = {
     method: 'put',
     url: extendURL(u, '_replicator'),
@@ -153,7 +154,7 @@ const migrateAuth = async function (opts) {
   const securityDoc = '_security'
   
   // establish the source account's username
-  const parsed = new url.URL(opts.sourceURL)
+  const parsed = new URL(opts.sourceURL)
   let username = null
   if (parsed.auth) {
     username = parsed.auth.split(':')[0]
@@ -188,10 +189,10 @@ const migrateAuth = async function (opts) {
 }
 
 // migrate a single database from source ---> target
-const migrateSingleDB = async function (opts) {
+async function migrateSingleDB(opts) {
   // sanity check URLs
-  const sourceParsed = new url.URL(opts.source)
-  const targetParsed = new url.URL(opts.target)
+  const sourceParsed = new URL(opts.source)
+  const targetParsed = new URL(opts.target)
 
   // check source URL
   if (!sourceParsed.protocol || !sourceParsed.hostname) {
@@ -207,7 +208,7 @@ const migrateSingleDB = async function (opts) {
   const ee = opts.ee || new EventEmitter()
 
   // extract dbname
-  const rparsed = new url.URL(opts.source)
+  const rparsed = new URL(opts.source)
 
   // turn source URL into '_replicator' database
   const dbname = decodeURIComponent(sourceParsed.pathname.replace(/^\//, ''))
@@ -260,7 +261,7 @@ const migrateSingleDB = async function (opts) {
 }
 
 // migrate a list of documents from source --> target
-const migrateList = async function (opts) {
+export async function migrateList(opts) {
   // enforce maximum number of continuous replications
   if (opts.live && opts.databases.length > 50) {
     throw new Error('Maximum number of continuous replications is fifty')
@@ -271,25 +272,13 @@ const migrateList = async function (opts) {
     opts.concurrency = 50
   }
 
-  // progress bar
-  let multibar
-  if (!opts.quiet) {
-    // create new container
-    multibar = new cliProgress.MultiBar({
-      clearOnComplete: false,
-      hideCursor: true,
-      format: '{dbname} {bar} | {status} | ETA: {eta_formatted} | {percentage}%'
-    }, cliProgress.Presets.shades_grey)
-  }
-
   // get database names
   return new Promise((resolve, reject) => {
     // async queue of migrations
     const q = qrate(async (dbname) => {
       const newopts = JSON.parse(JSON.stringify(opts))
       if (!newopts.quiet) {
-        newopts.bar = multibar.create(100, 0)
-        newopts.bar.update(0, { dbname, status: '_' })
+        console.log(dbname, '_', '0%')
       }
       if (!opts.skipExtend) {
         newopts.source = extendURL(newopts.source, dbname)
@@ -298,11 +287,12 @@ const migrateList = async function (opts) {
       newopts.ee = new EventEmitter()
       newopts.ee.on('status', (s) => {
         if (!newopts.quiet) {
-          newopts.bar.update(Math.floor(s.percent * 100), { dbname, status: s.status })
+          const p = Math.floor(s.percent * 100)
+          console.log(dbname, s.status, p + '%')
         }
       }).on('completed', (s) => {
         if (!newopts.quiet) {
-          newopts.bar.update(100, { dbname, status: s.status })
+          console.log(dbname, s.status, 100 + '%')
         }
       })
       await migrateSingleDB(newopts)
@@ -319,15 +309,15 @@ const migrateList = async function (opts) {
     // when the queue is drained, we're done
     q.drain = () => {
       resolve()
-      if (!opts.quiet) {
-        multibar.stop()
-      }
+      // if (!opts.quiet) {
+      //   multibar.stop()
+      // }
     }
   })
 }
 
 // migrate all documents
-const migrateAll = async function (opts) {
+export async function migrateAll(opts) {
   // get db names and push to the queue
   const req = {
     url: extendURL(opts.source, '_all_dbs'),
@@ -341,18 +331,11 @@ const migrateAll = async function (opts) {
 }
 
 // migrate a single database
-const migrateDB = async function (opts) {
+export async function migrateDB(opts) {
   // convert to a list of database names to avoid code duplication
-  const sourceParsed = new url.URL(opts.source)
+  const sourceParsed = new URL(opts.source)
   const dbname = decodeURIComponent(sourceParsed.pathname.replace(/^\//, ''))
   opts.databases = [dbname]
   opts.skipExtend = true
   await migrateList(opts)
-}
-
-module.exports = {
-  migrateDB,
-  migrateList,
-  migrateAll,
-  createReplicator
 }

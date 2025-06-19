@@ -1,7 +1,7 @@
 #!/usr/bin/env node
+import { parseArgs } from 'node:util'
+import * as couchreplicate from '../index.js'
 
-const cam = require('../index.js')
-const url = require('url')
 const syntax =
 `Syntax:
 --source/-s                   CouchDB source URL                              (required)
@@ -15,7 +15,7 @@ const syntax =
 --nomonitor/-n                Don't monitor the replications after setup     (default: false)
 --deletions                         Include deleted docs (default: false)
 `
-const { parseArgs } = require('node:util')
+
 const argv = process.argv.slice(2)
 const options = {
   source: {
@@ -75,8 +75,8 @@ if (values.help) {
 values.concurrency = parseInt(values.concurrency)
 
 // parse the URLs
-const sourceParsed = new url.URL(values.source)
-const targetParsed = new url.URL(values.target)
+const sourceParsed = new URL(values.source)
+const targetParsed = new URL(values.target)
 
 // check source URL
 if (!sourceParsed.protocol || !sourceParsed.hostname) {
@@ -126,8 +126,8 @@ const main = async () => {
   if (sourceDbname && targetDbname) {
     // migrate single database
     try {
-      await cam.createReplicator(replicatorURL)
-      await cam.migrateDB(values)
+      await couchreplicate.createReplicator(replicatorURL)
+      await couchreplicate.migrateDB(values)
     } catch (e) {
       console.error(e)
       process.exit(6)
@@ -136,8 +136,8 @@ const main = async () => {
     // or if a named database or list is supplied
     values.databases = values.databases.split(',')
     try {
-      await cam.createReplicator(replicatorURL)
-      await cam.migrateList(values)
+      await couchreplicate.createReplicator(replicatorURL)
+      await couchreplicate.migrateList(values)
     } catch (e) {
       console.error(e)
       process.exit(6)
@@ -145,8 +145,8 @@ const main = async () => {
   } else if (values.all) {
     // or if all databases are required
     try {
-      await cam.createReplicator(replicatorURL)
-      await cam.migrateAll(values)
+      await couchreplicate.createReplicator(replicatorURL)
+      await couchreplicate.migrateAll(values)
     } catch (e) {
       console.error(e)
       process.exit(6)
